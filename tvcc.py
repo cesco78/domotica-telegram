@@ -233,7 +233,7 @@ def handle(msg):
 # la cosa migliore sarebbe avere questo file in /etc/tvcc.conf per rispettare le convenzioni in linux
 # io lo tengo nella cartella dove lavoro per questione di comodita'
 Config = ConfigParser.ConfigParser()
-Config.read("/home/pi/domotica_tucci/tvcc.conf")
+Config.read("/home/pi/tvcc.conf")
 
 # registro l'avvio del sistema
 logga(0, "Sistema avviato")
