@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/python
 import telepot
 import pprint
 import time
@@ -8,6 +8,17 @@ import json
 import requests
 import ConfigParser
 import datetime
+import traceback
+
+
+# "Domotibot" e' un bot di telegram che permette la gestione di alcune funzionalita' all'interno
+# di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
+#
+# Programma di Francesco Tucci 
+# Versione 1.01 del 27/01/2016
+#
+# Il programma e' rilasciato con licenza GPL v.3
+#
 
 # genero un timestamp per l'inserimento nel file di log all'inizio di ogni riga
 # ritorna il timestamp nel formato dd-mm-aaaa hh:mm:ss
@@ -96,9 +107,9 @@ def handle(msg):
     
     # comando per reimpostare la tastiera standard e quello per creare la tastiera personalizzata
     hide_keyboard = {'hide_keyboard': True}
-    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now']]}
+    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now'],['DLNA agg', 'DLNA HD', 'DLNA dwn']]}
     
-    # controllo che i comandi arrivino dagli utenti abilitati (questo controllo e' da migliorare)
+    # controllo che i comandi arrivino dagli utenti abilitati
     if id_utente != int(ConfigSectionMap("Sistema")['utente_1']) and id_utente != int(ConfigSectionMap("Sistema")['utente_2']):
         bot.sendMessage(id_utente, "Spiacente, bot non attivo")
         
@@ -108,8 +119,7 @@ def handle(msg):
         logga(1, "Messaggio da utente non autorizzato!")
     else:
         # questo e' il comando per iniziare ad interagire
-        # la parte dopo la @ si deve aggiungere se si usano i comandi dallìapp desktop di telegram
-        if testo == "/ciao" or testo == "/ciao@[mettere qui il nome del bot]":
+        if testo == "/ciao" or testo == "/ciao@domotuccibot":
             messaggio = "Ciao " + nome_utente + ", cosa posso fare per te?"
             # alla risposta aggiunge la tastiera personalizzata
             bot.sendMessage(id_chat, messaggio, reply_markup=show_keyboard)
@@ -217,8 +227,6 @@ def handle(msg):
                 bot.sendPhoto(id_chat, foto)
                 os.system("rm /home/pi/Pictures/SingoloClick.jpg")
                 logga(0, "Scattata la foto istantanea")
-
-
             
         else:
             messaggio = "Ciao " + nome_utente + ", per interagire con me scrivi '/ciao' e segui le istruzioni"
@@ -233,7 +241,7 @@ def handle(msg):
 # la cosa migliore sarebbe avere questo file in /etc/tvcc.conf per rispettare le convenzioni in linux
 # io lo tengo nella cartella dove lavoro per questione di comodita'
 Config = ConfigParser.ConfigParser()
-Config.read("/home/pi/tvcc.conf")
+Config.read("/home/pi/domotica_tucci/tvcc.conf")
 
 # registro l'avvio del sistema
 logga(0, "Sistema avviato")
@@ -242,7 +250,16 @@ logga(0, "Sistema avviato")
 # che la connessione ad Internet sia operativa
 
 # cerco di ottenere l'IP pubblico
-req = requests.get("http://httpbin.org/ip")
+# aggiunta la gestione delle eccezioni per l'avvio se la rete manca (27-01-2016)
+connesso = False
+while connesso == False:
+    try:
+        req = requests.get("http://httpbin.org/ip")
+        connesso = True
+        logga(0, "Internet c'e")
+    except Exception, err:
+        logga(3, "Manca Internet " + str(traceback.format_exc()))
+        time.sleep(30)
 
 # ci provo fino a che la richiesta non mi da' messaggio http200
 while req.status_code != 200:
@@ -266,9 +283,18 @@ logga (0, "IP di LAN: " + indirizzo_eth0)
 
 # creo il bot e mi collego a Telegram usando la mia chiave univoca
 # che mi e' stata comunicata da The Botfather (si deve rispettare la famiglia)
-bot = telepot.Bot(ConfigSectionMap("Sistema")['id_bot'])
-utente =  bot.getMe()
-logga(0, "Connessione a Telegram avvenuta! ID utente del bot: " + str(utente['id']))
+# aggiunta la gestione delle eccezioni per capire che fare quando manca connessione o i server Telegram sono giu' (27/01/2016)
+connessione_telegram = False
+while connessione_telegram == False:
+    try:
+        bot = telepot.Bot(ConfigSectionMap("Sistema")['id_bot'])
+        utente =  bot.getMe()
+        logga(0, "Connessione a Telegram avvenuta! ID utente del bot: " + str(utente['id']))
+        connessione_telegram = True
+    except Exception, err:
+        logga(3, "Connessione a Telegram fallita o caduta")
+        logga(3, traceback.format_exc())
+        time.sleep(30)
 
 # mando i messaggi informativi alla chat
 messaggio = "Ciao, sono stato appena riavviato, per sicurezza adesso avvio la videosorveglianza e ti mostro alcune informazioni\n"
