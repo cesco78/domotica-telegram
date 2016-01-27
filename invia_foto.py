@@ -9,6 +9,15 @@ import requests
 import datetime
 import ConfigParser
 
+# "Domotibot" e' un bot di telegram che permette la gestione di alcune funzionalita' all'interno
+# di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
+#
+# Programma di Francesco Tucci 
+# Versione 1.01 del 27/01/2016
+#
+# Il programma e' rilasciato con licenza GPL v.3
+#
+
 # genero un timestamp per l'inserimento nel file di log all'inizio di ogni riga
 # ritorna il timestamp nel formato dd-mm-aaaa hh:mm:ss
 def adesso():
@@ -69,7 +78,7 @@ def ConfigSectionMap(section):
 # la cosa migliore sarebbe avere questo file in /etc/tvcc.conf per rispettare le convenzioni in linux
 # io lo tengo nella cartella dove lavoro per questione di comodita'
 Config = ConfigParser.ConfigParser()
-Config.read("/home/pi/tvcc.conf")
+Config.read("/home/pi/domotica_tucci/tvcc.conf")
 
 bot = telepot.Bot(ConfigSectionMap("Sistema")['id_bot'])
 logga(0, "Connesso a Telegram per invio foto di movimento")
@@ -93,3 +102,5 @@ if tempo_da_avvio > float(ConfigSectionMap("Sistema")['tempo_ingaggio']):
         logga(1, "Inviata la foto del moimento rilevato")
 else:
     logga(1, "Foto generata, ma utenti non avvisati perche' nel periodo di grace")
+
+    
