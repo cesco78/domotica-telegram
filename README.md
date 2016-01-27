@@ -10,7 +10,7 @@ E' necessario ricordarsi di mettere la calncellazione della cartelle delle foto 
 
 ## Changelog
 
-### Versione 1.1 del 27/01/2016
+### Versione 1.01 del 27/01/2016
 Ho aggiunto il controllo delle eccezioni in caso di avvio del sistema con Internet assente e sulla mancata connessione ai server di Telegram per problemi loro o mancanza di Internet
 
 ### Versione 1.0 del 24/01/2016
