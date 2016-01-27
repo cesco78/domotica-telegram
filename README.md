@@ -8,7 +8,12 @@ Il programma _invia_foto.py_ va inserito nel file di configurazione di motion al
 Il programma _avvisa_movimento.py_ va inserito nel file di configurazione di motion alla riga _on_event_start_ (avvisa che un evento di rilevazione di movimento è iniziato)
 E' necessario ricordarsi di mettere la calncellazione della cartelle delle foto alla riga _on_event_end_ altrimenti il disco si potrebbe riempire rapidamente
 
-## Versione 1.0 del 24/01/2016
+## Changelog
+
+### Versione 1.1 del 27/01/2016
+Ho aggiunto il controllo delle eccezioni in caso di avvio del sistema con Internet assente e sulla mancata connessione ai server di Telegram per problemi loro o mancanza di Internet
+
+### Versione 1.0 del 24/01/2016
 Funzionalità di base inserite, accensione, spegnimento, richiesta stato e invio messaggi di avviso quando viene rilevato un movimento.
 Ripetto alla prima versione beta ho annullato la solita falsa rilevazione dell'errore che segnala il movimento appena il servizio di motion parte.
 Resta da definire la procedura fatta bene che verifica gli utenti autorizzati.
