@@ -11,6 +11,6 @@
 CONTROLLO="$(ps -Af |grep -v grep | grep tvcc.py|awk '{ print $2}')" >/dev/null
 if [[ ${CONTROLLO} == '' ]] ; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") [ERR] TVCC caduto, lo devo riavviare" >> /percorsoapplicazione/tvcc.log
-        python /percorsoapplicazione/tvcc.py
+        python /percorsoapplicazione/tvcc.py >>/percorsoapplicazione/tvcc_std.log 2>&1 &
 
 fi
