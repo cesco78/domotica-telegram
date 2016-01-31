@@ -15,7 +15,7 @@ import traceback
 # di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
 #
 # Programma di Francesco Tucci 
-# Versione 1.01 del 27/01/2016
+# Versione 1.02 del 31/01/2016
 #
 # Il programma e' rilasciato con licenza GPL v.3
 #
@@ -107,16 +107,24 @@ def handle(msg):
     
     # comando per reimpostare la tastiera standard e quello per creare la tastiera personalizzata
     hide_keyboard = {'hide_keyboard': True}
-    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now'],['DLNA agg', 'DLNA HD', 'DLNA dwn']]}
+    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now'],['DLNA agg', 'DLNA HD', 'DLNA fld']]}
     
     # controllo che i comandi arrivino dagli utenti abilitati
-    if id_utente != int(ConfigSectionMap("Sistema")['utente_1']) and id_utente != int(ConfigSectionMap("Sistema")['utente_2']):
+    utenti_abilitati = [ConfigSectionMap("Sistema")['utente_1'], ConfigSectionMap("Sistema")['utente_2'], ConfigSectionMap("Sistema")['utente_3'], ConfigSectionMap("Sistema")['utente_4'], ConfigSectionMap("Sistema")['utente_5']]
+    utente_abilitato = False
+    for index in range(len(utenti_abilitati)):
+        if utenti_abilitati[index] != "no":
+            if id_utente == int(utenti_abilitati[index]):
+                utente_abilitato = True
+            
+    
+    if utente_abilitato == False:
         bot.sendMessage(id_utente, "Spiacente, bot non attivo")
         
         #mando un messaggio all'amministratore del sistema per informare che un altro utete ha provato a scrivere
         messaggio = "Attenzione l'utente " + nome_utente + " " + cognome_utente + " (id " + str(id_utente) + ") ha scritto questo: <<" + testo + ">>"
         bot.sendMessage(ConfigSectionMap("Sistema")['utente_1'], messaggio)
-        logga(1, "Messaggio da utente non autorizzato!")
+        logga(1, "Messaggio da utente non autorizzato! --> " + nome_utente + " " + cognome_utente + " (id " + str(id_utente) + ") ha scritto questo: <<" + testo + ">>")
     else:
         # questo e' il comando per iniziare ad interagire
         if testo == "/ciao" or testo == "/ciao@domotuccibot":
@@ -207,6 +215,23 @@ def handle(msg):
                 logga(0, "motion acceso")
 
         # *******
+        # voglio eseguire l'indicizzazione del server miniDLNA
+        # *******
+        elif testo == 'dlna agg':
+            messaggio = "Adesso mi collego alla scheda UDOO, mi serve un po' di tempo (circa 1 minuto)"
+            bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
+            logga(0, "invio comando di reindex miniDLNA sulla scheda UDOO")
+            ritorno = os.system("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" 'sudo minidlna -R && sleep 30 && sudo service minidlna restart'")
+            if ritorno == 0:
+                messaggio = "Ho riavviato l'indicizzazione del sistema DLNA sulla scheda UDOO, prova a connetterti tra qualche minuto"
+                bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
+                logga(0, "Indicizzazione miniDLNA avviata con successo")
+            else:
+                messaggio = "Qualcosa non ha funzionato con il riavvio del servizio DLNA. Codice di errore: " + str(ritorno)
+                bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
+                logga(1, "Indicizzazione miniDLNA fallita con errore " + str(ritorno))
+
+        # *******
         # voglio fare un foto dell'area (solo se il sistema non e' attivo)
         # *******
         elif testo == 'now':
@@ -227,6 +252,54 @@ def handle(msg):
                 bot.sendPhoto(id_chat, foto)
                 os.system("rm /home/pi/Pictures/SingoloClick.jpg")
                 logga(0, "Scattata la foto istantanea")
+
+        # *******
+        # voglio sapere lo stato dei dischi del server Multimediale (massimo 5 dischi messi nel file di configurazione)
+        # *******
+        elif testo == 'dlna hd':
+            
+            
+            # carico la lista dei dischi da controllare e quella dei nomi da assegnare
+            elenco_hd = [ConfigSectionMap("Udoo")['disco_1'], ConfigSectionMap("Udoo")['disco_2'], ConfigSectionMap("Udoo")['disco_3'], ConfigSectionMap("Udoo")['disco_4'], ConfigSectionMap("Udoo")['disco_5']]
+            elenco_nomi_hd = [ConfigSectionMap("Udoo")['disco_descrizione_1'], ConfigSectionMap("Udoo")['disco_descrizione_2'], ConfigSectionMap("Udoo")['disco_descrizione_3'], ConfigSectionMap("Udoo")['disco_descrizione_4'], ConfigSectionMap("Udoo")['disco_descrizione_5']]
+            messaggio = "La percentuale di utilizzo dei dischi del server multimediale e':\n"
+            
+            # controllo quanto e' pieno ogni disco (tranne quelli con "no" nel nome)
+            for index in range(len(elenco_hd)):
+                if elenco_hd[index] !="no":
+                    usato_hd = os.popen("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" df -h | grep '" + elenco_hd[index] + "' | awk '{ print $5}'").read()
+                    usato_hd = usato_hd.replace('\n', '')
+                    logga(0, "Spazio usato su " + elenco_hd[index] + ": " + usato_hd)
+                    messaggio = messaggio + "*" + elenco_nomi_hd[index] +"*: " + usato_hd + "\n"
+
+            bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
+
+        # *******
+        # voglio sapere cosa contengono le cartelle del server Multimediale (massimo 5 cartelle messe nel file di configurazione)
+        # *******
+        elif testo == 'dlna fld':
+            
+            # carico nella lista tutti i percorsi da controllare
+            elenco_cartelle = [ConfigSectionMap("Udoo")['cartella_1'], ConfigSectionMap("Udoo")['cartella_2'], ConfigSectionMap("Udoo")['cartella_3'], ConfigSectionMap("Udoo")['cartella_4'], ConfigSectionMap("Udoo")['cartella_5']]
+            
+            # controllo il contenuto di ogni cartella
+            for item in elenco_cartelle:
+                if item != "no":
+                        
+                    udoo_download = os.popen("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" ls -A1 " + item).read()
+                    messaggio = "Questi sono i file presenti nella cartella *" + item + "*:\n" + udoo_download
+                    
+                    # pulisco da caratteri strani (= non ASCII) e faccio comunque una try per mandare il messaggio
+                    # visto che non so che nomi di file potrei trovarci dentro
+                    messaggio = "".join(i for i in messaggio if ord(i)<128)
+                    try:
+                        bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
+                    except Exception, err:
+                        logga(3, "Errore nel ricevere i file dal server")
+                        logga(3, str(traceback.format_exc()))
+                        messaggio = "Ho rilevato un problema nel cercare la lista dei file"
+                        bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
+
             
         else:
             messaggio = "Ciao " + nome_utente + ", per interagire con me scrivi '/ciao' e segui le istruzioni"
@@ -331,7 +404,14 @@ else:
         logga(0, "Motion e' partito al boot del sistema")
 
 # controllo comandi in arrivo
-bot.notifyOnMessage(handle)
+try:
+    bot.notifyOnMessage(handle)
+except Exception, err:
+    logga(3, "Connessione a Telegram fallita o caduta")
+    logga(3, traceback.format_exc()) 
 
+
+# da qui in poi ci sono i comandi per tenere sotto controllo tutta la
+# parte di domotica e sensoristica del sistema, con avviso in caso di problemi
 while 1:
     time.sleep(10)
