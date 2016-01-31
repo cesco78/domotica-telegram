@@ -16,6 +16,7 @@ Aggiunte alcune try per tracciare problemi in giro per il programma
 Aggiunto un log per l'output del programma, far partire il sistema al boot con il comando nel crontab
 ```@reboot /bin/sleep 60 ; python /cartella_del_programa/tvcc.py >>/cartella_del_log/tvcc_std.log 2>&1```
 Aggiunto lo script per controllare se il programma cade, da inserire nel crontab ogni 5 o 10 minuti
+Affinata la gestione degli utenti autorizzati, ora sono gestiti tutti e 5
 
 ### Versione 1.01 del 27/01/2016
 Ho aggiunto il controllo delle eccezioni in caso di avvio del sistema con Internet assente e sulla mancata connessione ai server di Telegram per problemi loro o mancanza di Internet
