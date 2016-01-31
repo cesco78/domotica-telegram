@@ -13,7 +13,7 @@ import ConfigParser
 # di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
 #
 # Programma di Francesco Tucci 
-# Versione 1.01 del 27/01/2016
+# Versione 1.02 del 31/01/2016
 #
 # Il programma e' rilasciato con licenza GPL v.3
 #
