@@ -10,6 +10,13 @@ E' necessario ricordarsi di mettere la calncellazione della cartelle delle foto 
 
 ## Changelog
 
+### Versione 1.02 del 31/01/2016
+Aggiunto il controllo del server multimedale linux con miniDLNA
+Aggiunte alcune try per tracciare problemi in giro per il programma
+Aggiunto un log per l'output del programma, far partire il sistema al boot con il comando nel crontab
+```@reboot /bin/sleep 60 ; python /cartella_del_programa/tvcc.py >>/cartella_del_log/tvcc_std.log 2>&1```
+Aggiunto lo script per controllare se il programma cade, da inserire nel crontab ogni 5 o 10 minuti
+
 ### Versione 1.01 del 27/01/2016
 Ho aggiunto il controllo delle eccezioni in caso di avvio del sistema con Internet assente e sulla mancata connessione ai server di Telegram per problemi loro o mancanza di Internet
 
