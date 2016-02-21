@@ -98,7 +98,10 @@ def handle(msg):
     # questi sono i dati del messaggio in arrivo
     id_utente = msg['from']['id'] # id utente per rispondere male a chi non e' ablitato
     nome_utente = msg['from']['first_name'] # nome utente per rispondere con gentilezza ai comandi
-    cognome_utente = msg['from']['last_name'] # cognome dell'utente che ha inviato il messaggio
+    if 'last_name' in msg:
+        cognome_utente = msg['from']['last_name'] # cognome dell'utente che ha inviato il messaggio
+    else:
+        cognome_utente = ""
     id_chat = msg['chat']['id'] # id della chat a cui rispondere
     testo = msg['text'].lower() # testo dei messaggi ricevuti, convertito tutto in minuscole per facilitare il lavoro con il parse
     
