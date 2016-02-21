@@ -10,6 +10,9 @@ E' necessario ricordarsi di mettere la calncellazione della cartelle delle foto 
 
 ## Changelog
 
+### Versione 1.03 del 21/02/2016
+Il sistema non rispondeva quando ho tolto il cognome dela mio account su telefram, ho aggiunto il controllo che se il cognome non c'è il sistema non si blocca.
+
 ### Versione 1.02 del 31/01/2016
 Aggiunto il controllo del server multimedale linux con miniDLNA
 Aggiunte alcune try per tracciare problemi in giro per il programma
