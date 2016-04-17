@@ -9,13 +9,14 @@ import requests
 import ConfigParser
 import datetime
 import traceback
+import sqlite3
 
 
 # "Domotibot" e' un bot di telegram che permette la gestione di alcune funzionalita' all'interno
 # di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
 #
 # Programma di Francesco Tucci 
-# Versione 1.02 del 31/01/2016
+# Versione 1.03 del 17/04/2016
 #
 # Il programma e' rilasciato con licenza GPL v.3
 #
@@ -102,6 +103,7 @@ def handle(msg):
         cognome_utente = msg['from']['last_name'] # cognome dell'utente che ha inviato il messaggio
     else:
         cognome_utente = ""
+    #cognome_utente = "n.d."
     id_chat = msg['chat']['id'] # id della chat a cui rispondere
     testo = msg['text'].lower() # testo dei messaggi ricevuti, convertito tutto in minuscole per facilitare il lavoro con il parse
     
@@ -110,7 +112,7 @@ def handle(msg):
     
     # comando per reimpostare la tastiera standard e quello per creare la tastiera personalizzata
     hide_keyboard = {'hide_keyboard': True}
-    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now'],['DLNA agg', 'DLNA HD', 'DLNA fld']]}
+    show_keyboard = {'keyboard': [['TVcc ON','TVcc OFF', 'TVcc?', 'Now'],['Temp?', 'Watt?']]}
     
     # controllo che i comandi arrivino dagli utenti abilitati
     utenti_abilitati = [ConfigSectionMap("Sistema")['utente_1'], ConfigSectionMap("Sistema")['utente_2'], ConfigSectionMap("Sistema")['utente_3'], ConfigSectionMap("Sistema")['utente_4'], ConfigSectionMap("Sistema")['utente_5']]
@@ -130,7 +132,7 @@ def handle(msg):
         logga(1, "Messaggio da utente non autorizzato! --> " + nome_utente + " " + cognome_utente + " (id " + str(id_utente) + ") ha scritto questo: <<" + testo + ">>")
     else:
         # questo e' il comando per iniziare ad interagire
-        if testo == "/ciao" or testo == "/ciao@domotuccibot":
+        if testo == "/ciao" or testo == "/ciao@[nomedelbot]":
             messaggio = "Ciao " + nome_utente + ", cosa posso fare per te?"
             # alla risposta aggiunge la tastiera personalizzata
             bot.sendMessage(id_chat, messaggio, reply_markup=show_keyboard)
@@ -218,23 +220,6 @@ def handle(msg):
                 logga(0, "motion acceso")
 
         # *******
-        # voglio eseguire l'indicizzazione del server miniDLNA
-        # *******
-        elif testo == 'dlna agg':
-            messaggio = "Adesso mi collego alla scheda UDOO, mi serve un po' di tempo (circa 1 minuto)"
-            bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
-            logga(0, "invio comando di reindex miniDLNA sulla scheda UDOO")
-            ritorno = os.system("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" 'sudo minidlna -R && sleep 30 && sudo service minidlna restart'")
-            if ritorno == 0:
-                messaggio = "Ho riavviato l'indicizzazione del sistema DLNA sulla scheda UDOO, prova a connetterti tra qualche minuto"
-                bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
-                logga(0, "Indicizzazione miniDLNA avviata con successo")
-            else:
-                messaggio = "Qualcosa non ha funzionato con il riavvio del servizio DLNA. Codice di errore: " + str(ritorno)
-                bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
-                logga(1, "Indicizzazione miniDLNA fallita con errore " + str(ritorno))
-
-        # *******
         # voglio fare un foto dell'area (solo se il sistema non e' attivo)
         # *******
         elif testo == 'now':
@@ -257,53 +242,114 @@ def handle(msg):
                 logga(0, "Scattata la foto istantanea")
 
         # *******
-        # voglio sapere lo stato dei dischi del server Multimediale (massimo 5 dischi messi nel file di configurazione)
-        # *******
-        elif testo == 'dlna hd':
+        # Voglio un report sulla temperatura in casa
+        # *******            
+        elif testo == "temp?":
             
+            # inizializzo la variabile di connessione
+            connessione = None
             
-            # carico la lista dei dischi da controllare e quella dei nomi da assegnare
-            elenco_hd = [ConfigSectionMap("Udoo")['disco_1'], ConfigSectionMap("Udoo")['disco_2'], ConfigSectionMap("Udoo")['disco_3'], ConfigSectionMap("Udoo")['disco_4'], ConfigSectionMap("Udoo")['disco_5']]
-            elenco_nomi_hd = [ConfigSectionMap("Udoo")['disco_descrizione_1'], ConfigSectionMap("Udoo")['disco_descrizione_2'], ConfigSectionMap("Udoo")['disco_descrizione_3'], ConfigSectionMap("Udoo")['disco_descrizione_4'], ConfigSectionMap("Udoo")['disco_descrizione_5']]
-            messaggio = "La percentuale di utilizzo dei dischi del server multimediale e':\n"
+            try:
+                # connessione al DB
+                connessione = sqlite3.connect('/[cartella]/[database].db')
+                
+                # generazione del cursore
+                cursore = connessione.cursor()
+                
+                # leggo l'ultimo valore memorizzato
+                cursore.execute("SELECT ID, strftime('%H:%M', Timestamp, 'localtime'), Luogo, Temp, Umid FROM Temperature WHERE Luogo = 1 ORDER BY ID DESC LIMIT 1;")
+                
+                # memorizzo tutti i valore recuperati
+                righe = cursore.fetchall()
+                
+                # compongo il messaggio
+                for row in righe:
+                    messaggio = "*Ultima lettura delle ore " + str(row[1]) + "*\nT: " + str(row[3]) + " - Umid.: " + str(row[4]) + "%\n\n"
+                
+                # cerco il valore massimo delle ultime 24h
+                cursore.execute("SELECT MAX(Temp), strftime('%d/%m %H:%M', Timestamp, 'localtime') from temperature where timestamp >= datetime('now','-1 day');")
+                righe = cursore.fetchall()
+                for row in righe:
+                    messaggio = messaggio + "*Nelle ultime 24 ore:*\n"
+                    messaggio = messaggio + "Massima: " + str(row[0]) + " (" + str(row[1]) + ")\n"
+ 
+                # cerco il valore minimo delle ultime 24h
+                cursore.execute("SELECT MIN(Temp), strftime('%d/%m %H:%M', Timestamp, 'localtime') from temperature where timestamp >= datetime('now','-1 day');")
+                righe = cursore.fetchall()
+                for row in righe:
+                    messaggio = messaggio + "Minima: " + str(row[0]) + " (" + str(row[1]) + ")\n"               
+                
+                
+                bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
+    
+                
             
-            # controllo quanto e' pieno ogni disco (tranne quelli con "no" nel nome)
-            for index in range(len(elenco_hd)):
-                if elenco_hd[index] !="no":
-                    usato_hd = os.popen("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" df -h | grep '" + elenco_hd[index] + "' | awk '{ print $5}'").read()
-                    usato_hd = usato_hd.replace('\n', '')
-                    logga(0, "Spazio usato su " + elenco_hd[index] + ": " + usato_hd)
-                    messaggio = messaggio + "*" + elenco_nomi_hd[index] +"*: " + usato_hd + "\n"
+            except sqlite3.Error, e:
+                return "Error %s:" % e.args[0]
+            
+            finally:
+                if connessione:
+                    connessione.commit()
+                    connessione.close()            
 
-            bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
 
         # *******
-        # voglio sapere cosa contengono le cartelle del server Multimediale (massimo 5 cartelle messe nel file di configurazione)
-        # *******
-        elif testo == 'dlna fld':
+        # Voglio un report sul consumo di corrente
+        # *******            
+        elif testo == "watt?":
             
-            # carico nella lista tutti i percorsi da controllare
-            elenco_cartelle = [ConfigSectionMap("Udoo")['cartella_1'], ConfigSectionMap("Udoo")['cartella_2'], ConfigSectionMap("Udoo")['cartella_3'], ConfigSectionMap("Udoo")['cartella_4'], ConfigSectionMap("Udoo")['cartella_5']]
+            # inizializzo la variabile di connessione
+            connessione = None
             
-            # controllo il contenuto di ogni cartella
-            for item in elenco_cartelle:
-                if item != "no":
-                        
-                    udoo_download = os.popen("sshpass -p '" + ConfigSectionMap("Udoo")['password'] + "' ssh " + ConfigSectionMap("Udoo")['utente'] + "@" + ConfigSectionMap("Udoo")['indirizzo_ip'] +" ls -A1 " + item).read()
-                    messaggio = "Questi sono i file presenti nella cartella *" + item + "*:\n" + udoo_download
-                    
-                    # pulisco da caratteri strani (= non ASCII) e faccio comunque una try per mandare il messaggio
-                    # visto che non so che nomi di file potrei trovarci dentro
-                    messaggio = "".join(i for i in messaggio if ord(i)<128)
-                    try:
-                        bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
-                    except Exception, err:
-                        logga(3, "Errore nel ricevere i file dal server")
-                        logga(3, str(traceback.format_exc()))
-                        messaggio = "Ho rilevato un problema nel cercare la lista dei file"
-                        bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
+            try:
+                # connessione al DB
+                connessione = sqlite3.connect('/[cartella]/[database].db')
+                
+                # generazione del cursore
+                cursore = connessione.cursor()
+                
+                # leggo l'ultimo valore memorizzato
+                cursore.execute("SELECT ID, strftime('%H:%M', Timestamp, 'localtime'), Luogo, Consumo FROM Corrente WHERE Luogo = 1 ORDER BY ID DESC LIMIT 1;")
+                
+                # memorizzo tutti i valore recuperati
+                righe = cursore.fetchall()
+                
+                # compongo il messaggio
+                for row in righe:
+                    messaggio = "*Ultima lettura delle ore " + str(row[1]) + "*\nPotenza: " + str(row[3]) + " W\n\n"
+                
+                # cerco il valore massimo delle ultime 24h
+                cursore.execute("SELECT MAX(Consumo), strftime('%d/%m %H:%M', Timestamp, 'localtime') from Corrente where timestamp >= datetime('now','-1 day');")
+                righe = cursore.fetchall()
+                for row in righe:
+                    messaggio = messaggio + "*Nelle ultime 24 ore:*\n"
+                    messaggio = messaggio + "Picco massimo: " + str(row[0]) + " W (" + str(row[1]) + ")\n"
+ 
+                # cerco il valore minimo delle ultime 24h
+                cursore.execute("SELECT MIN(Consumo), strftime('%d/%m %H:%M', Timestamp, 'localtime') from Corrente where timestamp >= datetime('now','-1 day');")
+                righe = cursore.fetchall()
+                for row in righe:
+                    messaggio = messaggio + "Consumo minimo: " + str(row[0]) + " W (" + str(row[1]) + ")\n"
 
+                # cerco il valore media delle ultime 24h
+                cursore.execute("SELECT AVG(Consumo), strftime('%d/%m %H:%M', Timestamp, 'localtime') from Corrente where timestamp >= datetime('now','-1 day');")
+                righe = cursore.fetchall()
+                for row in righe:
+                    messaggio = messaggio + "Consumo medio: " + str(int(row[0])) + " W\n"                    
+                
+                
+                bot.sendMessage(id_chat, messaggio, parse_mode='Markdown', reply_markup=hide_keyboard)
+    
+                
             
+            except sqlite3.Error, e:
+                return "Error %s:" % e.args[0]
+            
+            finally:
+                if connessione:
+                    connessione.commit()
+                    connessione.close()              
+        
         else:
             messaggio = "Ciao " + nome_utente + ", per interagire con me scrivi '/ciao' e segui le istruzioni"
             bot.sendMessage(id_chat, messaggio, reply_markup=hide_keyboard)
