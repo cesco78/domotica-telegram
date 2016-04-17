@@ -10,6 +10,10 @@ E' necessario ricordarsi di mettere la calncellazione della cartelle delle foto 
 
 ## Changelog
 
+### Versione 1.04 del 17/04/2016
+Ho aggiunto la parte di gestione delle informazioni sulle temperature e le letture della corrente (manca la gestione del DB, ma arriva a breve)
+Ho aggiunto la cartella con il codice del lettore di consumo elettrico istantaneo, fare rifeimrento al blog per tutta la parte di descrizione e chemi elettrici.
+
 ### Versione 1.03 del 21/02/2016
 Il sistema non rispondeva quando ho tolto il cognome dela mio account su telefram, ho aggiunto il controllo che se il cognome non c'è il sistema non si blocca.
 
