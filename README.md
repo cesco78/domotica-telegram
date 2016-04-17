@@ -1,6 +1,6 @@
 # Un bot in grado di gestire dei sensori in casa
 Telegram è un'ottima piattaforma per creare bot che possano interagire con i messaggi di domando inviati tramite il proprio dispositivo portatile.
-Ho creato questo piccolo sistema per controllare l'impianto di videosorveglianza in casa (lo accendo, lo spengo, lo interrogo sullo stato e mi faccio mandare un avviso e le foto quando capita che viene rilevato un movimento.
+Ho creato questo piccolo sistema per controllare l'impianto di videosorveglianza in casa (lo accendo, lo spengo, lo interrogo sullo stato e mi faccio mandare un avviso e le foto quando capita che viene rilevato un movimento) e lo sto perfezionando con il controllo di vari sensori e allarmi. La pagia riassuntiva di tutto il progetto è [questa](http://www.iltucci.com/blog/la-domotica-fai-da-me/). Cercherò di tenere aggiornate entrambe per facilitarvi l'accesso a tutte le modifiche.
 L'applicazione è in Python, usa le librerie [telepot](https://github.com/nickoala/telepot) per interagire con le [API di Telegram](https://core.telegram.org/) e il programma [motion](http://www.lavrsen.dk/foswiki/bin/view/Motion/WebHome) per rilevare il movimento, usando la videocamera IR presente sul Raspberry Pi
 
 Il programma _tvcc.py_ va avviato al boot del sistema, in modo che il bot sia pronto (per motivi di sicurezza, al riavvio del raspberry la videosorveglianza viene attivata in automatico)
