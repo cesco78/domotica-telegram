@@ -16,7 +16,7 @@ import sqlite3
 # di una rete domestica. Viene usata la libreria "telepot" per le connessioni alle API di Telegram
 #
 # Programma di Francesco Tucci 
-# Versione 1.03 del 17/04/2016
+# Versione 1.04 del 17/04/2016
 #
 # Il programma e' rilasciato con licenza GPL v.3
 #
